@@ -35,8 +35,8 @@ class BetterCam:
             output=self._output, device=self._device
         )
         self.nvidia_gpu = nvidia_gpu
-        # if nvidia_gpu:
-        #     import cupy as np
+        if nvidia_gpu:
+            import cupy
         self._processor: Processor = Processor(output_color=output_color, nvidia_gpu=nvidia_gpu)
 
         self.width, self.height = self._output.resolution
@@ -181,7 +181,11 @@ class BetterCam:
                 frame = self._grab(region)
                 if frame is not None:
                     with self.__lock:
-                        self.__frame_buffer[self.__head] = frame
+                        if self.nvidia_gpu:
+                            import cupy
+                            self.__frame_buffer[self.__head] = frame.get() if isinstance(frame, cupy.ndarray) else frame
+                        else:
+                            self.__frame_buffer[self.__head] = frame
                         if self.__full:
                             self.__tail = (self.__tail + 1) % self.max_buffer_len
                         self.__head = (self.__head + 1) % self.max_buffer_len
